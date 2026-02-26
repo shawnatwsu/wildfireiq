@@ -1,0 +1,65 @@
+name: WildfireIQ — Daily Update
+
+on:
+  schedule:
+    - cron: "0 9 * * *"   # 9am UTC = 1am Pacific / 4am Eastern
+  push:
+    branches: [main]
+  workflow_dispatch:       # Manual trigger from Actions tab
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
+    name: Train Model · Fetch Data · Deploy
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install requests numpy scikit-learn
+
+      - name: Run pipeline (train ML + fetch live data)
+        run: python src/pipeline.py
+
+      - name: Commit updated data + model
+        run: |
+          git config user.name  "WildfireIQ Bot"
+          git config user.email "bot@wildfireiq.app"
+          git add docs/data/latest.json docs/model.json
+          if git diff --staged --quiet; then
+            echo "No changes — skipping commit"
+          else
+            git commit -m "🔥 $(date -u +'%Y-%m-%d %H:%M UTC') — live data + model update"
+            git push
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Print live URL
+        run: echo "🔥 Live at ${{ steps.deploy.outputs.page_url }}"
