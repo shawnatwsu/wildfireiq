@@ -2,347 +2,422 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>WildfireIQ — Live Wildfire Intelligence</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --fire:#FF5A1F;--ember:#FF8040;--flame:#C03000;--amber:#FFA040;
-  --bg:#060504;--panel:#0C0907;--border:rgba(255,90,31,.15);
-  --ash:#EDE4D8;--smoke:#9A8878;--dim:#4A3A2A;
-  --low:#16A34A;--mod:#D97706;--high:#EA580C;--vhigh:#DC2626;--ext:#7F1D1D;
-  --pw:360px;
+  --fire:#FF5A1F;--amber:#FFAA44;--flame:#CC3300;
+  --bg:#07090C;--glass:rgba(10,14,20,.88);--border:rgba(255,120,40,.18);
+  --ash:#F0E8DC;--smoke:#8A9AAA;--dim:#344050;
+  --low:#22C55E;--mod:#F59E0B;--high:#F97316;--vhigh:#EF4444;--ext:#991B1B;
+  --pw:380px;
 }
-html,body{width:100%;height:100%;background:var(--bg);color:var(--ash);font-family:'Rajdhani',sans-serif;overflow:hidden}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:2;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);opacity:.5}
-#embers{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.28}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--ash);
+  font-family:'Rajdhani',sans-serif;overflow:hidden}
 
-/* LOADER */
+/* ── Loader ─────────────────────────────── */
 #loader{position:fixed;inset:0;background:var(--bg);z-index:9999;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  transition:opacity .9s ease}
+  gap:0;transition:opacity 1s ease}
 #loader.out{opacity:0;pointer-events:none}
-.l-logo{font-family:'Bebas Neue';font-size:clamp(56px,10vw,90px);letter-spacing:6px;line-height:1}
-.l-f{color:var(--fire);filter:drop-shadow(0 0 24px rgba(255,90,31,.6));animation:flicker 3s ease infinite}
-.l-i{color:var(--ash)}
-@keyframes flicker{0%,100%{opacity:1}47%{opacity:.8}50%{opacity:1}74%{opacity:.9}}
-.l-tag{font-family:'JetBrains Mono';font-size:10px;letter-spacing:3px;color:var(--smoke);
-  text-transform:uppercase;margin-top:8px;text-align:center}
-.l-prog{width:300px;margin:32px auto 0}
-.l-tr{height:1px;background:rgba(255,255,255,.07);width:100%;position:relative}
-.l-fill{height:1px;background:linear-gradient(90deg,var(--flame),var(--fire),var(--amber));
-  width:0;animation:lfill 3.2s ease-in-out forwards;
-  box-shadow:0 0 10px rgba(255,90,31,.7),0 0 3px white}
-@keyframes lfill{0%{width:0}15%{width:18%}40%{width:52%}70%{width:80%}100%{width:100%}}
+.l-ring{width:120px;height:120px;position:relative;margin-bottom:32px}
+.l-ring svg{width:100%;height:100%}
+.l-ring-track{fill:none;stroke:rgba(255,255,255,.05);stroke-width:3}
+.l-ring-fill{fill:none;stroke:var(--fire);stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:0 376;animation:ringspin 3s ease-in-out forwards;
+  transform-origin:center;transform:rotate(-90deg)}
+@keyframes ringspin{to{stroke-dasharray:376 376}}
+.l-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:40px;animation:flicker 2s ease infinite}
+@keyframes flicker{0%,100%{opacity:1;filter:drop-shadow(0 0 12px rgba(255,90,31,.8))}
+  50%{opacity:.7;filter:drop-shadow(0 0 24px rgba(255,160,40,.9))}}
+.l-title{font-family:'Bebas Neue';font-size:52px;letter-spacing:6px;line-height:1}
+.l-title .f{color:var(--fire)}.l-title .i{color:var(--ash)}
+.l-sub{font-family:'JetBrains Mono';font-size:9px;letter-spacing:3px;color:var(--smoke);
+  text-transform:uppercase;margin-top:6px}
+.l-bar{width:260px;height:2px;background:rgba(255,255,255,.07);border-radius:1px;
+  margin-top:28px;overflow:hidden}
+.l-bfill{height:100%;background:linear-gradient(90deg,var(--flame),var(--fire),var(--amber));
+  animation:lbar 3.5s ease-in-out forwards;
+  box-shadow:0 0 12px var(--fire)}
+@keyframes lbar{0%{width:0}20%{width:22%}55%{width:60%}80%{width:85%}100%{width:100%}}
 #lmsg{font-family:'JetBrains Mono';font-size:9px;color:var(--dim);letter-spacing:2px;
-  text-transform:uppercase;margin-top:16px;text-align:center;min-height:14px}
+  text-transform:uppercase;margin-top:12px;min-height:14px}
 
-/* APP */
-#app{position:relative;width:100%;height:100vh;z-index:1}
+/* ── App shell ─────────────────────────── */
+#app{width:100%;height:100vh;position:relative;z-index:1}
 #map{position:absolute;inset:0}
-.leaflet-tile-pane{filter:brightness(.52) saturate(.3) contrast(1.2) hue-rotate(8deg)}
+/* Much brighter map - slightly desaturated but readable */
+.leaflet-tile-pane{filter:brightness(.72) saturate(.55) contrast(1.05)}
 .leaflet-control-zoom,.leaflet-control-attribution{display:none!important}
 
-/* TOPBAR */
-#topbar{position:absolute;top:0;left:0;right:0;height:50px;z-index:1000;
-  background:linear-gradient(180deg,rgba(6,5,4,.98) 0%,rgba(6,5,4,.75) 100%);
-  backdrop-filter:blur(14px);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 14px;gap:10px}
-.logo{font-family:'Bebas Neue';font-size:22px;letter-spacing:4px;user-select:none;flex-shrink:0;line-height:1}
-.logo .f{color:var(--fire);filter:drop-shadow(0 0 8px rgba(255,90,31,.4));animation:flicker 5s ease infinite}
-.logo .i{color:var(--ash)}
-.chip{font-family:'JetBrains Mono';font-size:8px;letter-spacing:1.5px;text-transform:uppercase;
-  border:1px solid;padding:2px 8px;border-radius:2px;flex-shrink:0}
-.clive{border-color:rgba(255,90,31,.4);color:var(--fire);display:flex;align-items:center;gap:5px}
-.cmod{border-color:var(--border);color:var(--smoke)}
-.ldot{width:5px;height:5px;background:var(--fire);border-radius:50%;animation:ldot 2s ease infinite;flex-shrink:0}
-@keyframes ldot{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,90,31,.5)}
-  50%{transform:scale(1.4);box-shadow:0 0 0 4px rgba(255,90,31,0)}}
+/* ── Topbar ─────────────────────────────── */
+#topbar{position:absolute;top:0;left:0;right:0;height:52px;z-index:1000;
+  background:linear-gradient(180deg,rgba(7,9,12,.97) 0%,rgba(7,9,12,.7) 100%);
+  backdrop-filter:blur(16px);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:10px}
+.tlogo{font-family:'Bebas Neue';font-size:24px;letter-spacing:4px;user-select:none}
+.tlogo .f{color:var(--fire);text-shadow:0 0 20px rgba(255,90,31,.5);animation:flicker 5s ease infinite}
+.tlogo .i{color:var(--ash)}
+.tchip{font-family:'JetBrains Mono';font-size:8px;letter-spacing:1.5px;
+  border:1px solid;padding:2px 8px;border-radius:20px;flex-shrink:0;text-transform:uppercase}
+.clive{border-color:rgba(255,90,31,.45);color:var(--fire);
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,90,31,.06)}
+.cnn{border-color:rgba(255,255,255,.1);color:var(--smoke);background:rgba(255,255,255,.03)}
+.ldot{width:6px;height:6px;background:var(--fire);border-radius:50%;
+  animation:ldot 2s ease infinite}
+@keyframes ldot{0%,100%{box-shadow:0 0 0 0 rgba(255,90,31,.6)}
+  50%{box-shadow:0 0 0 5px rgba(255,90,31,0)}}
 .tgap{flex:1}
-#locname{font-family:'JetBrains Mono';font-size:9px;color:var(--smoke);letter-spacing:.5px;
-  flex-shrink:0;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#locname{font-family:'JetBrains Mono';font-size:9px;color:var(--smoke);
+  letter-spacing:.5px;flex-shrink:0;max-width:180px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* UNITS TOGGLE */
-.utog{display:flex;background:rgba(255,255,255,.04);border:1px solid var(--border);
-  border-radius:3px;overflow:hidden;flex-shrink:0}
-.ubtn{font-family:'JetBrains Mono';font-size:9px;letter-spacing:1px;padding:4px 11px;
-  cursor:pointer;transition:all .2s;color:var(--dim);background:none;border:none;text-transform:uppercase}
-.ubtn.on{background:rgba(255,90,31,.18);color:var(--fire)}
+/* ── Units toggle ─────────────────────── */
+.utog{display:flex;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);border-radius:20px;overflow:hidden;flex-shrink:0}
+.ubtn{font-family:'JetBrains Mono';font-size:8.5px;letter-spacing:.8px;
+  padding:4px 12px;cursor:pointer;transition:all .25s;
+  color:var(--dim);background:none;border:none;text-transform:uppercase}
+.ubtn.on{background:var(--fire);color:white;
+  box-shadow:0 0 12px rgba(255,90,31,.4)}
 
-/* SEARCH */
+/* ── Search ─────────────────────────────── */
 .swrap{position:relative;flex-shrink:0}
-#search{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:2px;
-  padding:5px 10px 5px 28px;font-family:'Rajdhani';font-size:13px;color:var(--ash);
-  outline:none;width:185px;transition:all .25s;font-weight:500}
-#search:focus{border-color:rgba(255,90,31,.4);width:225px;background:rgba(255,255,255,.07)}
+#search{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;padding:6px 14px 6px 32px;
+  font-family:'Rajdhani';font-size:13px;font-weight:500;color:var(--ash);
+  outline:none;width:190px;transition:all .3s}
+#search:focus{border-color:rgba(255,90,31,.5);width:240px;
+  background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(255,90,31,.1)}
 #search::placeholder{color:var(--dim)}
-.si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--smoke);font-size:11px;pointer-events:none}
-#sres{position:absolute;top:calc(100% + 4px);left:0;right:0;background:rgba(10,8,6,.98);
-  border:1px solid var(--border);border-radius:2px;display:none;z-index:3000;max-height:200px;overflow-y:auto}
-.sri{padding:8px 12px;font-size:13px;cursor:pointer;font-weight:500;
+.sico{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  color:var(--smoke);font-size:12px;pointer-events:none}
+#sres{position:absolute;top:calc(100% + 6px);left:0;right:0;
+  background:rgba(10,14,20,.98);border:1px solid var(--border);
+  border-radius:12px;display:none;z-index:3000;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.sri{padding:10px 14px;font-size:13px;font-weight:500;cursor:pointer;
   border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s}
 .sri:hover{background:rgba(255,90,31,.1);color:var(--fire)}
+.sri:last-child{border-bottom:none}
 
-/* ALERT BANNER */
-#alertbar{position:absolute;top:50px;left:0;right:0;z-index:999;
-  background:linear-gradient(90deg,rgba(127,29,29,.96),rgba(180,40,40,.96));
-  border-bottom:1px solid rgba(220,38,38,.4);padding:7px 16px;
-  display:none;align-items:center;gap:10px;backdrop-filter:blur(8px)}
-.abicon{font-size:13px}
-.abtxt{font-family:'JetBrains Mono';font-size:9.5px;letter-spacing:.5px;flex:1;color:#FCA5A5}
+/* ── Alert banner ─────────────────────── */
+#alertbar{position:absolute;top:52px;left:0;right:0;z-index:999;
+  background:linear-gradient(90deg,rgba(153,27,27,.96),rgba(220,38,38,.85));
+  border-bottom:1px solid rgba(239,68,68,.4);
+  padding:8px 16px;display:none;align-items:center;gap:10px}
+.abico{font-size:14px}.abtxt{font-family:'JetBrains Mono';font-size:9px;
+  letter-spacing:.5px;flex:1;color:#FCA5A5}
 .abn{font-family:'Bebas Neue';font-size:20px;color:white;letter-spacing:1px}
-#abx{background:none;border:none;color:rgba(255,255,255,.4);font-size:14px;cursor:pointer;padding:0 4px}
+#abx{background:none;border:none;color:rgba(255,255,255,.4);font-size:16px;
+  cursor:pointer;padding:0 4px;line-height:1}
 #abx:hover{color:white}
 
-/* PANEL TOGGLE */
-#ptog{position:absolute;top:60px;right:0;z-index:1001;
-  background:rgba(12,9,7,.92);border:1px solid var(--border);border-right:none;
-  border-radius:4px 0 0 4px;padding:10px 7px;cursor:pointer;
-  backdrop-filter:blur(10px);display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .2s}
-#ptog:hover{background:rgba(255,90,31,.08);border-color:rgba(255,90,31,.3)}
+/* ── Panel toggle ─────────────────────── */
+#ptog{position:absolute;top:62px;right:0;z-index:1001;
+  background:var(--glass);border:1px solid var(--border);
+  border-right:none;border-radius:8px 0 0 8px;padding:12px 8px;
+  cursor:pointer;backdrop-filter:blur(12px);
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  transition:all .25s;box-shadow:-4px 4px 20px rgba(0,0,0,.3)}
+#ptog:hover{background:rgba(255,90,31,.12);border-color:rgba(255,90,31,.35)}
 .pb{width:14px;height:1.5px;background:var(--smoke);border-radius:1px;transition:all .3s}
-.open #ptog .pb:nth-child(1){transform:translateY(4.5px) rotate(45deg);background:var(--fire)}
+.open #ptog .pb:nth-child(1){transform:translateY(5.5px) rotate(45deg);background:var(--fire)}
 .open #ptog .pb:nth-child(2){opacity:0;transform:scaleX(0)}
-.open #ptog .pb:nth-child(3){transform:translateY(-4.5px) rotate(-45deg);background:var(--fire)}
+.open #ptog .pb:nth-child(3){transform:translateY(-5.5px) rotate(-45deg);background:var(--fire)}
 
-/* PANEL */
+/* ── Panel ───────────────────────────── */
 #panel{position:absolute;top:0;right:0;bottom:0;width:var(--pw);
-  background:rgba(10,8,6,.97);border-left:1px solid var(--border);
-  backdrop-filter:blur(20px);z-index:900;
+  background:var(--glass);border-left:1px solid var(--border);
+  backdrop-filter:blur(24px);z-index:900;
   transform:translateX(100%);transition:transform .4s cubic-bezier(.4,0,.2,1);
-  display:flex;flex-direction:column}
+  display:flex;flex-direction:column;
+  box-shadow:-20px 0 60px rgba(0,0,0,.4)}
 .open #panel{transform:translateX(0)}
-.ph{padding:12px 16px;border-bottom:1px solid var(--border);
+.ph{padding:14px 16px;border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:8px;flex-shrink:0}
-.ph-t{font-family:'Bebas Neue';font-size:18px;letter-spacing:3px;color:var(--ash)}
-.ph-u{font-family:'JetBrains Mono';font-size:8px;color:var(--dim);letter-spacing:.5px;margin-left:auto}
-.pscr{flex:1;overflow-y:auto;overflow-x:hidden}
-.pscr::-webkit-scrollbar{width:2px}
-.pscr::-webkit-scrollbar-thumb{background:rgba(255,90,31,.2)}
-.psec{border-bottom:1px solid rgba(255,255,255,.04);padding:14px 16px}
-.plbl{font-family:'JetBrains Mono';font-size:8px;letter-spacing:2.5px;
-  text-transform:uppercase;color:var(--fire);margin-bottom:11px;opacity:.8}
+.ph-t{font-family:'Bebas Neue';font-size:17px;letter-spacing:3px;color:var(--ash)}
+.ph-u{font-family:'JetBrains Mono';font-size:8px;color:var(--dim);
+  letter-spacing:.5px;margin-left:auto}
+.pscr{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;
+  scrollbar-color:rgba(255,90,31,.2) transparent}
+.pscr::-webkit-scrollbar{width:3px}
+.pscr::-webkit-scrollbar-thumb{background:rgba(255,90,31,.2);border-radius:2px}
+.psec{border-bottom:1px solid rgba(255,255,255,.05);padding:16px}
+.plbl{font-family:'JetBrains Mono';font-size:7.5px;letter-spacing:2.5px;
+  text-transform:uppercase;color:var(--fire);margin-bottom:12px;opacity:.85}
 
-/* GAUGE */
-.ghero{display:flex;flex-direction:column;align-items:center;padding:18px 16px 12px;
-  background:radial-gradient(ellipse at 50% 0%,rgba(255,90,31,.06) 0%,transparent 65%)}
-.gwrap{position:relative;width:200px;height:108px}
-#gc{width:200px;height:108px}
-.gpct{position:absolute;bottom:0;left:0;right:0;text-align:center;
-  font-family:'Bebas Neue';font-size:44px;letter-spacing:3px;line-height:1;transition:color .8s}
-#rlbl{font-family:'JetBrains Mono';font-size:8.5px;letter-spacing:3px;
-  text-transform:uppercase;color:var(--smoke);margin-top:2px}
-.rbars{display:flex;gap:3px;margin-top:13px;width:100%}
-.rb{flex:1;height:3px;border-radius:1.5px;opacity:.15;transition:opacity .6s,box-shadow .6s}
-.rb.on{opacity:1}
-.rb.on.rbe{box-shadow:0 0 6px var(--ext)}.rb.on.rbv{box-shadow:0 0 6px var(--vhigh)}
-.rb.on.rbh{box-shadow:0 0 6px var(--high)}.rb.on.rbm{box-shadow:0 0 4px var(--mod)}
-.rbl{background:var(--low)}.rbm{background:var(--mod)}.rbh{background:var(--high)}
-.rbv{background:var(--vhigh)}.rbe{background:var(--ext)}
-.rbls{display:flex;justify-content:space-between;margin-top:3px;
-  font-family:'JetBrains Mono';font-size:7px;color:var(--dim);text-transform:uppercase}
+/* ── Big risk hero ──────────────────── */
+.riskhero{padding:20px 16px 14px;
+  background:radial-gradient(ellipse at 50% -20%,rgba(255,90,31,.07) 0%,transparent 70%)}
+.risk-row{display:flex;align-items:flex-end;gap:16px;margin-bottom:14px}
+.gauge-side{position:relative;width:110px;height:110px;flex-shrink:0}
+#gc{width:110px;height:110px}
+.risk-info{flex:1}
+.risk-pct{font-family:'Bebas Neue';font-size:64px;letter-spacing:2px;line-height:.9;
+  transition:color .8s}
+.risk-lvl{font-family:'JetBrains Mono';font-size:9px;letter-spacing:3px;
+  text-transform:uppercase;margin-top:4px;transition:color .8s}
+.risk-desc{font-size:12px;color:var(--smoke);margin-top:6px;line-height:1.4;font-weight:400}
 
-/* WEATHER GRID */
-.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.wcard{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);
-  border-radius:2px;padding:9px 11px;transition:border-color .25s;position:relative;overflow:hidden}
-.wcard:hover{border-color:rgba(255,90,31,.22)}
-.wl{font-family:'JetBrains Mono';font-size:7.5px;letter-spacing:1.2px;
-  text-transform:uppercase;color:var(--smoke);margin-bottom:4px}
-.wv{font-family:'Bebas Neue';font-size:22px;letter-spacing:1.5px;color:var(--ash);line-height:1;transition:color .4s}
-.wu{font-family:'Rajdhani';font-size:11px;color:var(--dim);font-weight:400}
-.wbar{height:2px;background:rgba(255,255,255,.05);border-radius:1px;margin-top:5px}
-.wbf{height:100%;border-radius:1px;transition:width 1.4s cubic-bezier(.4,0,.2,1)}
+/* Risk level pills */
+.rpills{display:flex;gap:4px;flex-wrap:wrap}
+.rpill{font-family:'JetBrains Mono';font-size:7.5px;letter-spacing:1px;
+  text-transform:uppercase;padding:3px 8px;border-radius:20px;
+  border:1px solid;opacity:.3;transition:all .5s;cursor:default}
+.rpill.on{opacity:1}
 
-/* ATTRIBUTION */
-.arow{display:flex;align-items:center;gap:8px;margin-bottom:8px;
-  animation:sleft .4s ease both}
-@keyframes sleft{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
-.an{font-family:'JetBrains Mono';font-size:8.5px;color:var(--smoke);width:100px;flex-shrink:0}
-.abw{flex:1;height:4px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden}
-.abf{height:100%;border-radius:2px;transition:width 1.5s cubic-bezier(.4,0,.2,1)}
-.apct{font-family:'JetBrains Mono';font-size:8px;color:var(--smoke);width:28px;text-align:right;flex-shrink:0}
+/* ── Condition cards (2×3 grid) ────── */
+.cgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.ccard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  border-radius:8px;padding:10px 10px 8px;transition:all .25s;cursor:default}
+.ccard:hover{background:rgba(255,255,255,.06);border-color:rgba(255,90,31,.2);
+  transform:translateY(-1px)}
+.cc-ico{font-size:16px;margin-bottom:4px}
+.cc-l{font-family:'JetBrains Mono';font-size:7px;letter-spacing:1px;
+  text-transform:uppercase;color:var(--smoke);margin-bottom:2px}
+.cc-v{font-family:'Bebas Neue';font-size:20px;letter-spacing:1px;line-height:1;
+  transition:color .4s}
+.cc-u{font-family:'Rajdhani';font-size:10px;color:var(--dim);font-weight:400}
+.ccbar{height:2px;background:rgba(255,255,255,.06);border-radius:1px;margin-top:5px}
+.ccbf{height:100%;border-radius:1px;transition:width 1.4s cubic-bezier(.4,0,.2,1)}
 
-/* FORECAST */
-#fcsv{width:100%;height:88px}
+/* ── Attribution ─────────────────────── */
+.arow{display:flex;align-items:center;gap:8px;margin-bottom:9px;
+  animation:slideup .4s ease both}
+@keyframes slideup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.an{font-family:'JetBrains Mono';font-size:8px;color:var(--smoke);
+  width:105px;flex-shrink:0;letter-spacing:.2px}
+.abw{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.abf{height:100%;border-radius:3px;transition:width 1.6s cubic-bezier(.4,0,.2,1)}
+.aval{font-family:'JetBrains Mono';font-size:8px;width:28px;text-align:right;flex-shrink:0}
 
-/* AQI */
+/* ── Forecast chart ──────────────────── */
+#fcsv{width:100%;height:100px}
+.fc-day-label{font-family:'JetBrains Mono';font-size:8px;text-transform:uppercase}
+
+/* ── AQI ─────────────────────────────── */
 .aqirow{display:flex;align-items:center;gap:14px}
-.aqinum{font-family:'Bebas Neue';font-size:44px;letter-spacing:2px;line-height:1}
+.aqinum{font-family:'Bebas Neue';font-size:52px;letter-spacing:2px;line-height:1}
 .aqir{flex:1}
-.aqil{font-family:'JetBrains Mono';font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
-.aqibar{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.aqil{font-family:'JetBrains Mono';font-size:9px;letter-spacing:1.5px;
+  text-transform:uppercase;margin-bottom:5px}
+.aqibar{height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-bottom:5px}
 .aqibf{height:100%;border-radius:3px;transition:width 1.3s ease}
 .aqid{font-size:12px;color:var(--smoke);font-weight:400}
 .aqipm{font-family:'JetBrains Mono';font-size:8px;color:var(--dim);margin-top:3px}
 
-/* FIRES */
-.fitem{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+/* ── Fires list ─────────────────────── */
+.fitem{display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,.05)}
 .fitem:last-child{border-bottom:none}
-.fpulse{width:9px;height:9px;border-radius:50%;background:var(--fire);flex-shrink:0;
-  animation:fpulse 1.8s ease infinite}
-@keyframes fpulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,90,31,.6)}
-  50%{transform:scale(1.25);box-shadow:0 0 0 5px rgba(255,90,31,0)}}
+.fdot{width:10px;height:10px;border-radius:50%;background:var(--fire);
+  flex-shrink:0;box-shadow:0 0 0 0 rgba(255,90,31,.5);
+  animation:fpulse 2s ease infinite}
+@keyframes fpulse{
+  0%{box-shadow:0 0 0 0 rgba(255,90,31,.7)}
+  70%{box-shadow:0 0 0 8px rgba(255,90,31,0)}
+  100%{box-shadow:0 0 0 0 rgba(255,90,31,0)}}
 .finfo{flex:1;min-width:0}
-.ftit{font-size:12px;font-weight:600;color:var(--ash);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fmet{font-family:'JetBrains Mono';font-size:8px;color:var(--smoke);margin-top:1px}
-.nof{font-family:'JetBrains Mono';font-size:9px;color:var(--dim);text-align:center;padding:14px;letter-spacing:1px}
+.ft{font-size:12px;font-weight:600;color:var(--ash);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm{font-family:'JetBrains Mono';font-size:8px;color:var(--smoke);margin-top:2px}
+.nof{font-family:'JetBrains Mono';font-size:9px;color:var(--dim);
+  text-align:center;padding:16px;letter-spacing:1px}
 
-/* FOOTER */
-.pfoot{padding:10px 16px;border-top:1px solid var(--border);
-  font-family:'JetBrains Mono';font-size:7.5px;color:var(--dim);line-height:2;flex-shrink:0}
-.pfoot a{color:var(--smoke);text-decoration:none}.pfoot a:hover{color:var(--fire)}
+/* ── Panel footer ────────────────────── */
+.pfooter{padding:12px 16px;border-top:1px solid var(--border);
+  font-family:'JetBrains Mono';font-size:7.5px;color:var(--dim);
+  line-height:2;flex-shrink:0}
+.pfooter a{color:var(--smoke);text-decoration:none}
+.pfooter a:hover{color:var(--fire);text-decoration:underline}
 
-/* HUD */
-#legend{position:absolute;bottom:22px;right:14px;z-index:800;
-  background:rgba(10,8,6,.9);border:1px solid var(--border);border-radius:2px;
-  padding:10px 13px;backdrop-filter:blur(12px)}
-.legt{font-family:'JetBrains Mono';font-size:7.5px;letter-spacing:2px;text-transform:uppercase;
-  color:var(--smoke);margin-bottom:7px}
-.legg{width:150px;height:6px;border-radius:3px;margin-bottom:3px;
-  background:linear-gradient(90deg,#16A34A 0%,#D97706 28%,#EA580C 54%,#DC2626 76%,#7F1D1D 100%)}
-.legl{display:flex;justify-content:space-between;font-family:'JetBrains Mono';
-  font-size:7px;color:var(--dim);text-transform:uppercase}
-.stats{position:absolute;bottom:22px;left:14px;z-index:800;display:flex;flex-direction:column;gap:5px}
-.stat{background:rgba(10,8,6,.9);border:1px solid var(--border);border-radius:2px;
-  padding:6px 11px;backdrop-filter:blur(12px)}
-.statn{font-family:'Bebas Neue';font-size:22px;letter-spacing:1.5px;color:var(--fire);display:block;line-height:1}
-.statl{font-family:'JetBrains Mono';font-size:7px;color:var(--smoke);letter-spacing:1px;text-transform:uppercase}
-#dsrc{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);z-index:800;
-  font-family:'JetBrains Mono';font-size:7px;color:var(--dim);letter-spacing:.5px;
-  background:rgba(6,5,4,.7);padding:2px 10px;border-radius:1px;white-space:nowrap}
+/* ── Map HUD ─────────────────────────── */
+#legend{position:absolute;bottom:24px;right:14px;z-index:800;
+  background:var(--glass);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;backdrop-filter:blur(16px);
+  box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.legt{font-family:'JetBrains Mono';font-size:7.5px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--smoke);margin-bottom:8px}
+.legg{width:150px;height:7px;border-radius:4px;margin-bottom:4px;
+  background:linear-gradient(90deg,#22C55E 0%,#F59E0B 28%,#F97316 54%,#EF4444 76%,#991B1B 100%)}
+.legl{display:flex;justify-content:space-between;
+  font-family:'JetBrains Mono';font-size:7px;color:var(--dim);text-transform:uppercase}
 
-/* TOOLTIP */
-#tip{position:absolute;z-index:2000;background:rgba(10,8,6,.97);
-  border:1px solid rgba(255,90,31,.3);border-radius:2px;padding:10px 13px;
-  pointer-events:none;display:none;backdrop-filter:blur(12px);min-width:155px}
-.tipc{font-family:'JetBrains Mono';font-size:7.5px;color:var(--smoke);margin-bottom:4px}
-.tipr{font-family:'Bebas Neue';font-size:32px;letter-spacing:2px;line-height:1}
+.stats{position:absolute;bottom:24px;left:14px;z-index:800;display:flex;flex-direction:column;gap:6px}
+.stat{background:var(--glass);border:1px solid var(--border);border-radius:10px;
+  padding:8px 14px;backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.sn{font-family:'Bebas Neue';font-size:24px;letter-spacing:1.5px;color:var(--fire);
+  display:block;line-height:1}
+.sl{font-family:'JetBrains Mono';font-size:7px;color:var(--smoke);
+  letter-spacing:1px;text-transform:uppercase}
+
+/* ── Hover tooltip ───────────────────── */
+#tip{position:absolute;z-index:2000;
+  background:var(--glass);border:1px solid rgba(255,90,31,.35);
+  border-radius:12px;padding:12px 14px;pointer-events:none;display:none;
+  backdrop-filter:blur(20px);min-width:160px;
+  box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.tipc{font-family:'JetBrains Mono';font-size:7.5px;color:var(--smoke);margin-bottom:5px}
+.tipr{font-family:'Bebas Neue';font-size:36px;letter-spacing:2px;line-height:1}
 .tipl{font-family:'JetBrains Mono';font-size:8px;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
-.tipd{font-family:'JetBrains Mono';font-size:8px;color:var(--smoke);margin-top:5px;line-height:1.7}
+.tipd{font-family:'JetBrains Mono';font-size:8px;color:var(--smoke);margin-top:6px;line-height:1.8}
 
-.smsg{font-family:'JetBrains Mono';font-size:9px;color:var(--dim);text-align:center;
-  padding:14px;letter-spacing:1px;line-height:2}
+#dsrc{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);z-index:800;
+  font-family:'JetBrains Mono';font-size:7px;color:rgba(255,255,255,.2);
+  letter-spacing:.5px;background:rgba(7,9,12,.6);padding:3px 12px;border-radius:20px;
+  white-space:nowrap}
+.smsg{font-family:'JetBrains Mono';font-size:9px;color:var(--dim);
+  text-align:center;padding:16px;letter-spacing:1px;line-height:1.8}
+
+/* ── Embers canvas ───────────────────── */
+#embers{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.22}
 </style>
 </head>
 <body>
 <canvas id="embers"></canvas>
 
+<!-- Loader -->
 <div id="loader">
-  <div class="l-logo"><span class="l-f">WILDFIRE</span><span class="l-i">IQ</span></div>
-  <div class="l-tag">Live Wildfire Intelligence · Neural Net v1</div>
-  <div class="l-prog"><div class="l-tr"><div class="l-fill"></div></div></div>
+  <div class="l-ring">
+    <svg viewBox="0 0 120 120">
+      <circle class="l-ring-track" cx="60" cy="60" r="56"/>
+      <circle class="l-ring-fill" cx="60" cy="60" r="56"/>
+    </svg>
+    <div class="l-icon">🔥</div>
+  </div>
+  <div class="l-title"><span class="f">WILDFIRE</span><span class="i">IQ</span></div>
+  <div class="l-sub">Live Intelligence · No Signups · Neural Net v1</div>
+  <div class="l-bar"><div class="l-bfill"></div></div>
   <div id="lmsg">Initializing…</div>
 </div>
 
+<!-- App -->
 <div id="app">
   <div id="map"></div>
 
+  <!-- Topbar -->
   <div id="topbar">
-    <div class="logo"><span class="f">WILDFIRE</span><span class="i">IQ</span></div>
-    <div class="chip clive"><div class="ldot"></div>LIVE</div>
-    <div class="chip cmod">Neural Net v1</div>
+    <div class="tlogo"><span class="f">WILDFIRE</span><span class="i">IQ</span></div>
+    <div class="tchip clive"><div class="ldot"></div>LIVE</div>
+    <div class="tchip cnn">Neural Net v1</div>
     <div class="tgap"></div>
-    <div id="locname">Detecting…</div>
+    <div id="locname">Detecting location…</div>
     <div class="utog">
-      <button class="ubtn on" id="bmet" onclick="setUnits('metric')">°C / km/h</button>
-      <button class="ubtn" id="bimp" onclick="setUnits('imperial')">°F / mph</button>
+      <button class="ubtn on" id="bmet" onclick="setUnits('metric')">°C · km/h</button>
+      <button class="ubtn" id="bimp" onclick="setUnits('imperial')">°F · mph</button>
     </div>
     <div class="swrap">
-      <span class="si">⌕</span>
+      <span class="sico">⌕</span>
       <input id="search" type="text" placeholder="Search any location…" autocomplete="off">
       <div id="sres"></div>
     </div>
   </div>
 
+  <!-- Alert banner -->
   <div id="alertbar">
-    <div class="abicon">🚨</div>
-    <div class="abtxt">RED FLAG WARNING ACTIVE — Extreme fire weather conditions</div>
+    <div class="abico">🚨</div>
+    <div class="abtxt">RED FLAG WARNING ACTIVE — Extreme fire weather conditions in this region</div>
     <div class="abn" id="abn"></div>
     <button id="abx">✕</button>
   </div>
 
+  <!-- Panel toggle -->
   <div id="ptog" onclick="togglePanel()">
     <div class="pb"></div><div class="pb"></div><div class="pb"></div>
   </div>
 
+  <!-- Side panel -->
   <div id="panel">
     <div class="ph">
       <div class="ph-t">Risk Intelligence</div>
       <div class="ph-u" id="phu">—</div>
     </div>
+
     <div class="pscr">
 
-      <div class="ghero">
-        <div class="plbl" style="margin-bottom:10px">Current Risk Score</div>
-        <div class="gwrap">
-          <canvas id="gc" width="400" height="216"></canvas>
-          <div class="gpct" id="gpct">—</div>
+      <!-- Risk hero -->
+      <div class="riskhero">
+        <div class="plbl" style="margin-bottom:12px">Current Wildfire Risk</div>
+        <div class="risk-row">
+          <div class="gauge-side">
+            <canvas id="gc" width="220" height="220"></canvas>
+          </div>
+          <div class="risk-info">
+            <div class="risk-pct" id="rpct">—</div>
+            <div class="risk-lvl" id="rlvl">Loading…</div>
+            <div class="risk-desc" id="rdesc">Fetching live conditions…</div>
+          </div>
         </div>
-        <div id="rlbl">Loading…</div>
-        <div class="rbars">
-          <div class="rb rbl" id="rb0"></div>
-          <div class="rb rbm" id="rb1"></div>
-          <div class="rb rbh" id="rb2"></div>
-          <div class="rb rbv" id="rb3"></div>
-          <div class="rb rbe" id="rb4"></div>
+        <div class="rpills" id="rpills">
+          <div class="rpill" style="border-color:var(--low);color:var(--low)" id="rp0">Low</div>
+          <div class="rpill" style="border-color:var(--mod);color:var(--mod)" id="rp1">Moderate</div>
+          <div class="rpill" style="border-color:var(--high);color:var(--high)" id="rp2">High</div>
+          <div class="rpill" style="border-color:var(--vhigh);color:var(--vhigh)" id="rp3">Very High</div>
+          <div class="rpill" style="border-color:var(--ext);color:var(--ext)" id="rp4">Extreme</div>
         </div>
-        <div class="rbls"><span>Low</span><span>Mod</span><span>High</span><span>V.High</span><span>Ext</span></div>
       </div>
 
+      <!-- Conditions 3-column -->
       <div class="psec">
         <div class="plbl">Live Conditions</div>
-        <div class="wgrid" id="wgrid"><div class="smsg" style="grid-column:1/-1">Fetching weather…</div></div>
+        <div class="cgrid" id="cgrid"><div class="smsg" style="grid-column:1/-1">Fetching…</div></div>
       </div>
 
+      <!-- AI Attribution -->
       <div class="psec">
-        <div class="plbl">Risk Drivers — AI Attribution</div>
-        <div id="attr"><div class="smsg">Computing…</div></div>
+        <div class="plbl">Risk Drivers — AI Explanation</div>
+        <div id="attr"><div class="smsg">Running analysis…</div></div>
       </div>
 
+      <!-- 7-day forecast -->
       <div class="psec">
-        <div class="plbl">7-Day Risk Forecast</div>
+        <div class="plbl">7-Day Forecast</div>
         <svg id="fcsv"></svg>
       </div>
 
+      <!-- AQI -->
       <div class="psec">
         <div class="plbl">Air Quality & Smoke</div>
         <div id="aqiwrap"><div class="smsg">Loading…</div></div>
       </div>
 
+      <!-- Active fires -->
       <div class="psec">
-        <div class="plbl">Active Fires in Region</div>
+        <div class="plbl">Active Fires Nearby</div>
         <div id="flist"><div class="smsg">Querying NASA EONET…</div></div>
       </div>
 
-      <div class="pfoot">
-        Weather: <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> &nbsp;·&nbsp;
-        Fires: <a href="https://eonet.gsfc.nasa.gov" target="_blank">NASA EONET</a><br>
-        Alerts: <a href="https://api.weather.gov" target="_blank">NOAA Weather API</a><br>
-        AI inference runs entirely in your browser · Zero data stored
+      <div class="pfooter">
+        🌤 Weather: <a href="https://open-meteo.com" target="_blank">Open-Meteo</a><br>
+        🔥 Fires: <a href="https://eonet.gsfc.nasa.gov" target="_blank">NASA EONET</a><br>
+        🚨 Alerts: <a href="https://api.weather.gov" target="_blank">NOAA Weather API</a><br>
+        🧠 AI inference runs in your browser · Zero data stored
       </div>
     </div>
   </div>
 
+  <!-- Map overlays -->
   <div id="legend">
-    <div class="legt">Wildfire Risk</div>
+    <div class="legt">Wildfire Risk Level</div>
     <div class="legg"></div>
     <div class="legl"><span>Low</span><span>Mod</span><span>High</span><span>Ext</span></div>
   </div>
 
   <div class="stats">
-    <div class="stat"><span class="statn" id="sfires">—</span><span class="statl">Active Fires</span></div>
-    <div class="stat"><span class="statn" id="salerts">—</span><span class="statl">Red Flag Zones</span></div>
-    <div class="stat"><span class="statn" id="saqi">—</span><span class="statl">AQI</span></div>
+    <div class="stat"><span class="sn" id="sfires">—</span><span class="sl">Active Fires</span></div>
+    <div class="stat"><span class="sn" id="salerts">—</span><span class="sl">Red Flag Zones</span></div>
+    <div class="stat"><span class="sn" id="saqi">—</span><span class="sl">AQI Index</span></div>
   </div>
 
-  <div id="dsrc">Open-Meteo · NASA EONET · NOAA · Neural Net v1 · Zero data stored</div>
+  <div id="dsrc">Open-Meteo · NASA EONET · NOAA · Neural Net · Zero data stored</div>
 
   <div id="tip">
     <div class="tipc" id="tipc"></div>
@@ -354,69 +429,72 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:2;
 
 <script>
 // ═══════════════════════════════════════════════
-//  WildfireIQ v2
-//  Fixes: heatmap rendering, attribution bars,
-//  + metric/imperial toggle
+//  WildfireIQ v3 — Visual Revamp
+//  Fixes: bright map, vivid heatmap,
+//         always-visible attribution, new UI
 // ═══════════════════════════════════════════════
 
-// ── Units ────────────────────────────────────────
-let UNITS = 'metric';
-let LAST_W = null;
-
-function setUnits(u) {
-  UNITS = u;
-  document.getElementById('bmet').classList.toggle('on', u==='metric');
-  document.getElementById('bimp').classList.toggle('on', u==='imperial');
-  if (LAST_W) renderWeather(LAST_W);
+// ── Units state ──────────────────────────────
+let UNITS='metric', LAST_W=null;
+function setUnits(u){
+  UNITS=u;
+  document.getElementById('bmet').classList.toggle('on',u==='metric');
+  document.getElementById('bimp').classList.toggle('on',u==='imperial');
+  if(LAST_W)renderConditions(LAST_W);
 }
-
-const CV = {
-  temp:  (v,u) => u==='imperial' ? +(v*9/5+32).toFixed(1) : +v.toFixed(1),
-  tempU: (u)   => u==='imperial' ? '°F' : '°C',
-  wind:  (v,u) => u==='imperial' ? +(v*0.621).toFixed(1) : +v.toFixed(1),
-  windU: (u)   => u==='imperial' ? 'mph' : 'km/h',
-  prec:  (v,u) => u==='imperial' ? +(v*0.03937).toFixed(2) : +v.toFixed(1),
-  precU: (u)   => u==='imperial' ? 'in' : 'mm',
-  vpd:   (v,u) => u==='imperial' ? +(v*0.2953).toFixed(3) : +v.toFixed(2),
-  vpdU:  (u)   => u==='imperial' ? 'inHg' : 'kPa',
+const CV={
+  temp: (v,u)=>u==='imperial'?+(v*9/5+32).toFixed(1):+v.toFixed(1),
+  tempU:(u)=>u==='imperial'?'°F':'°C',
+  wind: (v,u)=>u==='imperial'?+(v*0.621).toFixed(1):+v.toFixed(1),
+  windU:(u)=>u==='imperial'?'mph':'km/h',
+  prec: (v,u)=>u==='imperial'?+(v*0.03937).toFixed(2):+v.toFixed(1),
+  precU:(u)=>u==='imperial'?'in':'mm',
+  vpd:  (v,u)=>u==='imperial'?+(v*0.2953).toFixed(3):+v.toFixed(2),
+  vpdU: (u)=>u==='imperial'?'inHg':'kPa',
 };
 
-// ── Neural Network ────────────────────────────────
-const NN = {
+// ── Neural Network ───────────────────────────
+const NN={
   W1:[
-    [2.1, 2.8, 0.6, 1.2, 0.5, 0.7, 0.8],
-    [0.4, 0.6, 2.8, 0.8, 2.2, 1.8, 0.4],
-    [0.9, 1.6, 0.7, 2.8, 0.8, 0.7, 1.2],
-    [1.2, 1.4, 1.2, 1.0, 1.3, 1.2, 1.0],
+    [2.1,2.8,0.6,1.2,0.5,0.7,0.8],
+    [0.4,0.6,2.8,0.8,2.2,1.8,0.4],
+    [0.9,1.6,0.7,2.8,0.8,0.7,1.2],
+    [1.2,1.4,1.2,1.0,1.3,1.2,1.0],
   ],
   b1:[-2.8,-2.8,-2.8,-3.8],
-  W2:[2.2,2.2,1.8,1.6],
-  b2:-2.4,
+  W2:[2.2,2.2,1.8,1.6],b2:-2.4,
   relu:x=>Math.max(0,x),
   sig: x=>1/(1+Math.exp(-Math.max(-20,Math.min(20,x)))),
   fwd(f){
     const h=this.W1.map((r,i)=>this.relu(r.reduce((s,w,j)=>s+w*f[j],this.b1[i])));
     return{risk:this.sig(this.W2.reduce((s,w,i)=>s+w*h[i],this.b2)),h};
   },
-  explain(features){
+  // Attribution: always show relative importance using gradient of risk w.r.t. each feature
+  // Works correctly regardless of whether current risk is low or high
+  explain(f){
     const names=['Temperature','Low Humidity','Wind Speed',
                  'Vapor Pressure','Dry Conditions','Soil Dryness','Fire Season'];
-    const base=[0,0,0.1,0.1,0.5,0.3,0];
-    const cr=this.fwd(features).risk;
-    // Always show relative sensitivity — how much does each factor contribute?
-    // Use marginal increase approach: vary each feature +1 unit
-    const sens=features.map((_,i)=>{
-      const hi=[...features]; hi[i]=Math.min(2,features[i]+0.8);
-      const lo=[...features]; lo[i]=Math.max(-2,features[i]-0.8);
-      return Math.max(0,this.fwd(hi).risk-this.fwd(lo).risk);
+    const icons=['🌡️','💧','💨','🌫️','☀️','🌱','📅'];
+    // Use finite difference gradient — how much does risk increase per unit of each feature?
+    const eps=0.3;
+    const grads=f.map((_,i)=>{
+      const fhi=[...f];fhi[i]=Math.min(2,f[i]+eps);
+      const flo=[...f];flo[i]=Math.max(-2,f[i]-eps);
+      return(this.fwd(fhi).risk-this.fwd(flo).risk)/(2*eps);
     });
-    const maxS=Math.max(...sens,0.001);
-    return names.map((n,i)=>({name:n,pct:Math.round(sens[i]/maxS*100)}))
-      .sort((a,b)=>b.pct-a.pct);
+    // Positive gradient = increases risk; negative = decreases risk
+    // Show absolute importance (both suppressing and amplifying factors matter)
+    const absG=grads.map(g=>Math.abs(g));
+    const maxG=Math.max(...absG,0.001);
+    return names.map((n,i)=>({
+      name:n,icon:icons[i],
+      pct:Math.round(absG[i]/maxG*100),
+      dir:grads[i]>0?'up':'down', // up=increases risk, down=reduces risk
+    })).sort((a,b)=>b.pct-a.pct);
   }
 };
 
-function mkFeatures(w){
+function mkF(w){
   const doy=new Date().getDate()+new Date().getMonth()*30;
   return[
     (w.temp-20)/30,
@@ -429,26 +507,26 @@ function mkFeatures(w){
   ];
 }
 
-function rlevel(r){
-  if(r<.20)return{level:'Low',      col:'#16A34A',glow:'rgba(22,163,74,.4)'};
-  if(r<.40)return{level:'Moderate', col:'#D97706',glow:'rgba(217,119,6,.4)'};
-  if(r<.60)return{level:'High',     col:'#EA580C',glow:'rgba(234,88,12,.5)'};
-  if(r<.80)return{level:'Very High',col:'#DC2626',glow:'rgba(220,38,38,.5)'};
-  return          {level:'Extreme', col:'#7F1D1D',glow:'rgba(127,29,29,.6)'};
+function rl(r){
+  if(r<.20)return{l:'Low',c:'#22C55E',g:'rgba(34,197,94,.35)',d:'Conditions are generally safe. Normal precautions apply.'};
+  if(r<.40)return{l:'Moderate',c:'#F59E0B',g:'rgba(245,158,11,.35)',d:'Elevated conditions. Monitor local fire weather.'};
+  if(r<.60)return{l:'High',c:'#F97316',g:'rgba(249,115,22,.45)',d:'Dangerous conditions. Avoid outdoor burning. Stay alert.'};
+  if(r<.80)return{l:'Very High',c:'#EF4444',g:'rgba(239,68,68,.5)',d:'Extreme danger. Fires can spread rapidly. Evacuate if ordered.'};
+  return      {l:'Extreme',c:'#991B1B',g:'rgba(153,27,27,.6)',d:'CRITICAL: Life-threatening conditions. Emergency situation.'};
 }
 
 function rRGB(v){
-  const s=[[0,[22,163,74]],[.25,[217,119,6]],[.55,[234,88,12]],[.78,[220,38,38]],[1,[127,29,29]]];
+  const s=[[0,[34,197,94]],[.28,[245,158,11]],[.54,[249,115,22]],[.76,[239,68,68]],[1,[153,27,27]]];
   for(let i=0;i<s.length-1;i++){
     if(v>=s[i][0]&&v<=s[i+1][0]){
       const t=(v-s[i][0])/(s[i+1][0]-s[i][0]);
       return s[i][1].map((c,j)=>Math.round(c+(s[i+1][1][j]-c)*t));
     }
   }
-  return[127,29,29];
+  return[153,27,27];
 }
 
-// ── Data fetchers ──────────────────────────────────
+// ── Data ──────────────────────────────────────
 async function fetchW(lat,lon){
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`+
     `&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,winddirection_10m,`+
@@ -456,28 +534,21 @@ async function fetchW(lat,lon){
     `&daily=temperature_2m_max,precipitation_sum,windspeed_10m_max,vapor_pressure_deficit_max`+
     `&past_days=7&forecast_days=7&timezone=auto&wind_speed_unit=kmh`;
   const d=await(await fetch(url)).json();
-  const now=new Date();
-  const times=d.hourly?.time||[];
+  const now=new Date(),times=d.hourly?.time||[];
   let idx=0;
   for(let i=0;i<times.length;i++)if(new Date(times[i])<=now)idx=i;
   const h=d.hourly,dy=d.daily;
   const p7=(dy.precipitation_sum||[]).slice(0,7).reduce((s,v)=>s+(v||0),0);
   const forecast=(dy.temperature_2m_max||[]).slice(0,7).map((tmax,i)=>{
     const pp=(dy.precipitation_sum||[]).slice(Math.max(0,i-3),i+1).reduce((s,v)=>s+(v||0),0);
-    return{risk:NN.fwd(mkFeatures({temp:tmax||20,rh:Math.max(5,65-(tmax-15)*1.2),
+    return{risk:NN.fwd(mkF({temp:tmax||20,rh:Math.max(5,65-(tmax-15)*1.2),
       wind:dy.windspeed_10m_max?.[i]||10,vpd:dy.vapor_pressure_deficit_max?.[i]||1,
-      precip7:pp,soil:.3})).risk,tmax};
+      precip7:pp,soil:.3})).risk};
   });
-  return{
-    temp:h.temperature_2m?.[idx]??20,
-    rh:h.relativehumidity_2m?.[idx]??50,
-    wind:h.windspeed_10m?.[idx]??10,
-    windDir:h.winddirection_10m?.[idx]??0,
-    precip:h.precipitation?.[idx]??0,
-    vpd:h.vapor_pressure_deficit?.[idx]??1,
-    soil:h.soil_moisture_0_to_1cm?.[idx]??0.3,
-    precip7:p7,forecast,
-  };
+  return{temp:h.temperature_2m?.[idx]??20,rh:h.relativehumidity_2m?.[idx]??50,
+    wind:h.windspeed_10m?.[idx]??10,windDir:h.winddirection_10m?.[idx]??0,
+    precip:h.precipitation?.[idx]??0,vpd:h.vapor_pressure_deficit?.[idx]??1,
+    soil:h.soil_moisture_0_to_1cm?.[idx]??0.3,precip7:p7,forecast};
 }
 
 async function fetchAQ(lat,lon){
@@ -485,17 +556,15 @@ async function fetchAQ(lat,lon){
     const url=`https://air-quality-api.open-meteo.com/v1/air-quality?`+
       `latitude=${lat}&longitude=${lon}&hourly=us_aqi,pm2_5&timezone=auto&forecast_days=1`;
     const d=await(await fetch(url)).json();
-    const now=new Date(); const times=d.hourly?.time||[]; let idx=0;
-    for(let i=0;i<times.length;i++)if(new Date(times[i])<=now)idx=i;
+    const now=new Date(),times=d.hourly?.time||[];
+    let idx=0;for(let i=0;i<times.length;i++)if(new Date(times[i])<=now)idx=i;
     return{aqi:d.hourly?.us_aqi?.[idx]??null,pm25:d.hourly?.pm2_5?.[idx]??null};
   }catch{return null;}
 }
 
 async function fetchFires(){
   try{
-    const d=await(await fetch(
-      'https://eonet.gsfc.nasa.gov/api/v3/events?category=wildfires&status=open&limit=200&days=45'
-    )).json();
+    const d=await(await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?category=wildfires&status=open&limit=200&days=45')).json();
     return(d.events||[]).map(ev=>{
       const g=ev.geometry?.[0];
       if(!g||g.type!=='Point')return null;
@@ -508,34 +577,28 @@ async function fetchAlerts(){
   try{
     const r=await fetch('https://api.weather.gov/alerts/active?event=Red%20Flag%20Warning&limit=100',
       {headers:{Accept:'application/geo+json'}});
-    if(!r.ok)return[];
-    return(await r.json()).features||[];
+    if(!r.ok)return[];return(await r.json()).features||[];
   }catch{return[];}
 }
 
 async function revGeo(lat,lon){
   try{
-    const d=await(await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-      {headers:{'Accept-Language':'en','User-Agent':'WildfireIQ/2.0'}}
-    )).json();
+    const d=await(await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+      {headers:{'Accept-Language':'en','User-Agent':'WildfireIQ/3.0'}})).json();
     const a=d.address||{};
     return[a.city||a.town||a.county,a.state].filter(Boolean).join(', ');
   }catch{return null;}
 }
 
 async function geoSearch(q){
-  try{
-    return await(await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,
-      {headers:{'Accept-Language':'en','User-Agent':'WildfireIQ/2.0'}}
-    )).json();
-  }catch{return[];}
+  try{return await(await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,
+    {headers:{'Accept-Language':'en','User-Agent':'WildfireIQ/3.0'}})).json();}
+  catch{return[];}
 }
 
-// ── Heatmap grid ───────────────────────────────────
+// ── Grid & heatmap ────────────────────────────
 async function buildGrid(lat,lon){
-  const STEP=1.0,N=2; // 5×5 grid
+  const STEP=0.8,N=3; // 7×7 = 49 points, denser grid
   const pts=[];
   for(let dy=-N;dy<=N;dy++)
     for(let dx=-N;dx<=N;dx++)
@@ -544,42 +607,21 @@ async function buildGrid(lat,lon){
   return pts.map((p,i)=>{
     const w=res[i].status==='fulfilled'?res[i].value:null;
     if(!w)return{...p,risk:0.15};
-    return{...p,risk:NN.fwd(mkFeatures(w)).risk,weather:w};
+    return{...p,risk:NN.fwd(mkF(w)).risk,weather:w};
   });
-}
-
-// ── Map ────────────────────────────────────────────
-let MAP,HLAYER=null,FLAYER=null,ALAYER=null,UMARKER=null,GRID=[];
-
-function initMap(lat,lon){
-  MAP=L.map('map',{center:[lat,lon],zoom:7,zoomControl:false,attributionControl:false});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(MAP);
-  const ui=L.divIcon({
-    html:`<div style="width:16px;height:16px;background:#3B82F6;border:2.5px solid white;
-      border-radius:50%;box-shadow:0 0 0 6px rgba(59,130,246,.2),0 0 16px rgba(59,130,246,.5)"></div>`,
-    className:'',iconAnchor:[8,8],
-  });
-  UMARKER=L.marker([lat,lon],{icon:ui}).addTo(MAP);
-  MAP.on('mousemove',onHover);
-  MAP.on('mouseout',()=>{document.getElementById('tip').style.display='none';});
 }
 
 function renderHeatmap(grid){
   GRID=grid;
   if(!grid.length||!MAP)return;
-
   const lats=[...new Set(grid.map(p=>p.lat))].sort((a,b)=>b-a);
   const lons=[...new Set(grid.map(p=>p.lon))].sort((a,b)=>a-b);
   const GH=lats.length,GW=lons.length;
-
-  // Build risk matrix
   const mtx=Array.from({length:GH},()=>new Array(GW).fill(0.15));
-  const lkp={};
-  grid.forEach(p=>{lkp[`${p.lat},${p.lon}`]=p.risk;});
+  const lkp={};grid.forEach(p=>{lkp[`${p.lat},${p.lon}`]=p.risk;});
   for(let r=0;r<GH;r++)for(let c=0;c<GW;c++)mtx[r][c]=lkp[`${lats[r]},${lons[c]}`]??0.15;
 
-  // Bilinear upscale
-  const SC=20;
+  const SC=14;
   const CW=GW*SC,CH=GH*SC;
   const cv=document.createElement('canvas');
   cv.width=CW;cv.height=CH;
@@ -590,37 +632,55 @@ function renderHeatmap(grid){
     const r0=Math.max(0,Math.floor(fr)),r1=Math.min(GH-1,r0+1);
     const c0=Math.max(0,Math.floor(fc)),c1=Math.min(GW-1,c0+1);
     const dr=fr-r0,dc=fc-c0;
-    return mtx[r0][c0]*(1-dr)*(1-dc)+mtx[r1][c0]*dr*(1-dc)
-          +mtx[r0][c1]*(1-dr)*dc    +mtx[r1][c1]*dr*dc;
+    return mtx[r0][c0]*(1-dr)*(1-dc)+mtx[r1][c0]*dr*(1-dc)+mtx[r0][c1]*(1-dr)*dc+mtx[r1][c1]*dr*dc;
   }
 
   for(let py=0;py<CH;py++){
     for(let px=0;px<CW;px++){
       const v=bilin(py/SC,px/SC);
       const[R,G,B]=rRGB(v);
-      // Make alpha more visible — minimum 40 opacity for any nonzero risk
-      const alpha=v<0.05?0:Math.min(230,Math.round(v*185+40));
+      // Much higher minimum alpha so it's always visible
+      // Low risk (green) is subtle; high risk (red) is very vivid
+      const alpha=Math.min(235,Math.round(v*210+45));
       const i4=(py*CW+px)*4;
       img.data[i4]=R;img.data[i4+1]=G;img.data[i4+2]=B;img.data[i4+3]=alpha;
     }
   }
   ctx.putImageData(img,0,0);
 
-  // Blur pass for glow
+  // Soft blur for atmosphere
   const cv2=document.createElement('canvas');
   cv2.width=CW;cv2.height=CH;
   const ctx2=cv2.getContext('2d');
-  ctx2.filter='blur(5px)';
+  ctx2.filter='blur(4px)';
   ctx2.drawImage(cv,0,0);
 
-  const STEP=lats.length>1?Math.abs(lats[0]-lats[1]):1;
+  const STEP=lats.length>1?Math.abs(lats[0]-lats[1]):0.8;
   const bounds=[
     [Math.min(...lats)-STEP/2,Math.min(...lons)-STEP/2],
     [Math.max(...lats)+STEP/2,Math.max(...lons)+STEP/2],
   ];
-
   if(HLAYER)MAP.removeLayer(HLAYER);
-  HLAYER=L.imageOverlay(cv2.toDataURL('image/png'),bounds,{opacity:.82}).addTo(MAP);
+  HLAYER=L.imageOverlay(cv2.toDataURL('image/png'),bounds,{opacity:.75}).addTo(MAP);
+}
+
+// ── Map setup ─────────────────────────────────
+let MAP,HLAYER=null,FLAYER=null,ALAYER=null,UMARK=null,GRID=[];
+
+function initMap(lat,lon){
+  MAP=L.map('map',{center:[lat,lon],zoom:7,zoomControl:false,attributionControl:false});
+  // Use a slightly lighter map style for better heatmap visibility
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(MAP);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{
+    maxZoom:19,opacity:.7,zIndex:200,}).addTo(MAP);
+  const ui=L.divIcon({
+    html:`<div style="width:18px;height:18px;background:#3B82F6;border:3px solid white;border-radius:50%;
+      box-shadow:0 0 0 5px rgba(59,130,246,.25),0 0 20px rgba(59,130,246,.6)"></div>`,
+    className:'',iconAnchor:[9,9],
+  });
+  UMARK=L.marker([lat,lon],{icon:ui,zIndexOffset:1000}).addTo(MAP);
+  MAP.on('mousemove',onHover);
+  MAP.on('mouseout',()=>{document.getElementById('tip').style.display='none';});
 }
 
 function addFires(fires){
@@ -628,20 +688,22 @@ function addFires(fires){
   FLAYER=L.layerGroup();
   fires.forEach(f=>{
     const ic=L.divIcon({
-      html:`<div style="width:13px;height:13px;
-        background:radial-gradient(circle,rgba(255,255,255,.4) 0%,#FF5A1F 45%,rgba(200,40,0,.2) 100%);
-        border-radius:50%;border:1px solid rgba(255,90,31,.9);
-        box-shadow:0 0 12px rgba(255,90,31,.7),0 0 4px rgba(255,160,0,.5);
-        animation:fpulse 1.8s ease infinite"></div>`,
-      className:'',iconAnchor:[6,6],
+      html:`<div style="width:14px;height:14px;position:relative">
+        <div style="position:absolute;inset:0;border-radius:50%;background:rgba(255,90,31,.25);
+          animation:fpulse 2s ease infinite"></div>
+        <div style="position:absolute;inset:3px;border-radius:50%;background:#FF5A1F;
+          box-shadow:0 0 8px rgba(255,90,31,.8)"></div>
+      </div>`,
+      className:'',iconAnchor:[7,7],
     });
     L.marker([f.lat,f.lon],{icon:ic})
       .bindTooltip(`<div style="font-family:'JetBrains Mono',monospace;font-size:10px;
-        background:rgba(10,8,6,.97);border:1px solid rgba(255,90,31,.3);
-        padding:9px 13px;border-radius:2px;min-width:130px">
-        <div style="font-size:7.5px;color:#9A8878;letter-spacing:1px;margin-bottom:5px">ACTIVE FIRE · NASA EONET</div>
-        <div style="color:#EDE4D8;font-size:12px;font-family:Rajdhani,sans-serif;font-weight:600">${f.title}</div>
-        <div style="color:#9A8878;font-size:8px;margin-top:3px">Detected: ${f.date}</div>
+        background:rgba(7,9,12,.97);border:1px solid rgba(255,90,31,.4);
+        padding:10px 14px;border-radius:10px;min-width:140px;
+        box-shadow:0 8px 32px rgba(0,0,0,.6)">
+        <div style="font-size:8px;color:#8A9AAA;letter-spacing:1px;margin-bottom:6px">🔥 ACTIVE FIRE · NASA EONET</div>
+        <div style="color:#F0E8DC;font-size:13px;font-family:Rajdhani,sans-serif;font-weight:600">${f.title}</div>
+        <div style="color:#8A9AAA;font-size:8px;margin-top:4px">Detected: ${f.date}</div>
       </div>`,{className:''}).addTo(FLAYER);
   });
   FLAYER.addTo(MAP);
@@ -652,8 +714,8 @@ function addAlerts(alerts){
   ALAYER=L.layerGroup();
   alerts.forEach(a=>{
     if(!a.geometry)return;
-    try{L.geoJSON(a.geometry,{style:{color:'#DC2626',weight:1.5,fillColor:'#DC2626',
-      fillOpacity:.07,dashArray:'4 4'}}).addTo(ALAYER);}catch{}
+    try{L.geoJSON(a.geometry,{style:{color:'#EF4444',weight:2,fillColor:'#EF4444',
+      fillOpacity:.1,dashArray:'6 4'}}).addTo(ALAYER);}catch{}
   });
   ALAYER.addTo(MAP);
 }
@@ -667,100 +729,122 @@ function onHover(e){
     return d<b.d?{d,p}:b;
   },{d:Infinity,p:null}).p;
   if(!near)return;
-  const rl=rlevel(near.risk);
-  const w=near.weather;
-  const u=UNITS;
-  document.getElementById('tipc').textContent=`${e.latlng.lat.toFixed(3)}°N  ${Math.abs(e.latlng.lng).toFixed(3)}°W`;
+  const lv=rl(near.risk);
+  const w=near.weather,u=UNITS;
+  document.getElementById('tipc').textContent=
+    `${e.latlng.lat.toFixed(3)}°N  ${Math.abs(e.latlng.lng).toFixed(3)}°W`;
   document.getElementById('tipr').textContent=Math.round(near.risk*100)+'%';
-  document.getElementById('tipr').style.color=rl.col;
-  document.getElementById('tipl').textContent=rl.level.toUpperCase()+' RISK';
-  document.getElementById('tipl').style.color=rl.col;
+  document.getElementById('tipr').style.color=lv.c;
+  document.getElementById('tipl').textContent=lv.l.toUpperCase()+' RISK';
+  document.getElementById('tipl').style.color=lv.c;
   if(w)document.getElementById('tipd').innerHTML=
-    `${CV.temp(w.temp,u)}${CV.tempU(u)} &nbsp;·&nbsp; ${w.rh.toFixed(0)}% RH &nbsp;·&nbsp; ${CV.wind(w.wind,u)} ${CV.windU(u)}`;
+    `${CV.temp(w.temp,u)}${CV.tempU(u)} · ${w.rh.toFixed(0)}% RH<br>`+
+    `${CV.wind(w.wind,u)} ${CV.windU(u)} · VPD ${CV.vpd(w.vpd,u)} ${CV.vpdU(u)}`;
   const mx=e.originalEvent.clientX-rect.left;
   const my=e.originalEvent.clientY-rect.top;
-  tip.style.left=Math.min(mx+16,rect.width-170)+'px';
-  tip.style.top=Math.max(my-90,8)+'px';
+  tip.style.left=Math.min(mx+16,rect.width-175)+'px';
+  tip.style.top=Math.max(my-100,8)+'px';
   tip.style.display='block';
 }
 
-// ── Panel renders ──────────────────────────────────
+// ── Panel renderers ────────────────────────────
 function drawGauge(risk){
   const canvas=document.getElementById('gc');
   const ctx=canvas.getContext('2d');
   const W=canvas.width,H=canvas.height;
-  const cx=W/2,cy=H-8,r=Math.min(W,H)*0.84;
+  const cx=W/2,cy=H/2,r=W*0.44;
   ctx.clearRect(0,0,W,H);
-  const SA=Math.PI,EA=2*Math.PI;
-  const rl=rlevel(risk);
-  const fillA=SA+(EA-SA)*Math.min(risk,1);
+  const lv=rl(risk);
+  const SA=-Math.PI*0.75,EA=Math.PI*0.75;
+  const range=EA-SA;
 
-  // BG track
-  ctx.beginPath();ctx.arc(cx,cy,r,SA,EA);
-  ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=16;ctx.lineCap='round';ctx.stroke();
-
-  // Glow halo
-  ctx.beginPath();ctx.arc(cx,cy,r,SA,fillA);
-  ctx.strokeStyle=rl.col;ctx.lineWidth=24;ctx.lineCap='round';
-  ctx.globalAlpha=.12;ctx.stroke();ctx.globalAlpha=1;
-
-  // Colour stops
-  const stops=[[0,'#16A34A'],[.25,'#D97706'],[.55,'#EA580C'],[.78,'#DC2626'],[1,'#7F1D1D']];
-  for(let i=0;i<stops.length-1;i++){
-    const s0=SA+(EA-SA)*stops[i][0];
-    const s1=Math.min(SA+(EA-SA)*stops[i+1][0],fillA);
-    if(s1<=s0)continue;
-    ctx.beginPath();ctx.arc(cx,cy,r,s0,s1);
-    ctx.strokeStyle=stops[i][1];ctx.lineWidth=14;ctx.lineCap='round';ctx.stroke();
+  // Outer glow when high risk
+  if(risk>0.5){
+    const grad=ctx.createRadialGradient(cx,cy,r*0.6,cx,cy,r*1.2);
+    grad.addColorStop(0,lv.g.replace('.35)','.2)').replace('.45)','.15)').replace('.5)','.12)'));
+    grad.addColorStop(1,'transparent');
+    ctx.beginPath();ctx.arc(cx,cy,r*1.2,0,Math.PI*2);
+    ctx.fillStyle=grad;ctx.fill();
   }
 
-  // Needle dot
-  const na=SA+(EA-SA)*risk;
-  const nx=cx+r*Math.cos(na),ny=cy+r*Math.sin(na);
-  ctx.beginPath();ctx.arc(nx,ny,8,0,Math.PI*2);
-  ctx.fillStyle='white';ctx.shadowColor=rl.glow;ctx.shadowBlur=16;ctx.fill();ctx.shadowBlur=0;
+  // BG track (full arc)
+  ctx.beginPath();ctx.arc(cx,cy,r,SA,EA);
+  ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=12;ctx.lineCap='round';ctx.stroke();
 
-  const pEl=document.getElementById('gpct');
-  pEl.textContent=Math.round(risk*100)+'%';
-  pEl.style.color=rl.col;
-  pEl.style.textShadow=`0 0 20px ${rl.glow}`;
-  document.getElementById('rlbl').textContent=rl.level.toUpperCase()+' RISK';
-  const li=['Low','Moderate','High','Very High','Extreme'].indexOf(rl.level);
-  [0,1,2,3,4].forEach(i=>document.getElementById('rb'+i).classList.toggle('on',i<=li));
+  // Filled arc
+  const fillEnd=SA+range*Math.min(risk,1);
+  const stops=[[0,'#22C55E'],[.28,'#F59E0B'],[.54,'#F97316'],[.76,'#EF4444'],[1,'#991B1B']];
+  for(let i=0;i<stops.length-1;i++){
+    const s0=SA+range*stops[i][0];
+    const s1=Math.min(SA+range*stops[i+1][0],fillEnd);
+    if(s1<=s0)continue;
+    ctx.beginPath();ctx.arc(cx,cy,r,s0,s1);
+    ctx.strokeStyle=stops[i][1];ctx.lineWidth=12;ctx.lineCap='round';ctx.stroke();
+  }
+
+  // Needle
+  const na=SA+range*risk;
+  const nx=cx+r*Math.cos(na),ny=cy+r*Math.sin(na);
+  ctx.beginPath();ctx.arc(nx,ny,7,0,Math.PI*2);
+  ctx.fillStyle='white';ctx.shadowColor=lv.c;ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0;
+
+  // Center dot
+  ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,.2)';ctx.fill();
 }
 
-function renderWeather(w){
+function updateRisk(risk){
+  const lv=rl(risk);
+  drawGauge(risk);
+  document.getElementById('rpct').textContent=Math.round(risk*100)+'%';
+  document.getElementById('rpct').style.color=lv.c;
+  document.getElementById('rlvl').textContent=lv.l.toUpperCase()+' RISK';
+  document.getElementById('rlvl').style.color=lv.c;
+  document.getElementById('rdesc').textContent=lv.d;
+  const pills=['Low','Moderate','High','Very High','Extreme'];
+  const ci=pills.indexOf(lv.l);
+  pills.forEach((_,i)=>document.getElementById('rp'+i).classList.toggle('on',i===ci));
+}
+
+function renderConditions(w){
   LAST_W=w;
   const u=UNITS;
-  const dc=(p)=>p>.75?'var(--vhigh)':p>.5?'var(--high)':p>.25?'var(--amber)':'var(--mod)';
-  const sc=(p)=>p>.75?'var(--mod)':p>.4?'var(--amber)':'var(--high)';
+  // Danger color: red = dangerous, green = safe
+  const dc=(pct,invert=false)=>{
+    const v=invert?1-pct:pct;
+    return v>.75?'#EF4444':v>.5?'#F97316':v>.25?'#F59E0B':'#22C55E';
+  };
   const cards=[
-    {l:'Temperature',v:CV.temp(w.temp,u), u:CV.tempU(u), p:Math.min(1,(w.temp+10)/60), d:true},
-    {l:'Humidity',   v:w.rh.toFixed(0),   u:'%',         p:w.rh/100,                   d:false},
-    {l:'Wind Speed', v:CV.wind(w.wind,u), u:CV.windU(u), p:Math.min(1,w.wind/80),      d:true},
-    {l:'VPD',        v:CV.vpd(w.vpd,u),   u:CV.vpdU(u),  p:Math.min(1,w.vpd/5),        d:true},
-    {l:'Precip 7d',  v:CV.prec(w.precip7,u),u:CV.precU(u),p:Math.min(1,w.precip7/30), d:false},
-    {l:'Soil Moist', v:(w.soil*100).toFixed(0),u:'%',     p:Math.min(1,w.soil/0.5),    d:false},
+    {ico:'🌡️',l:'Temp',   v:CV.temp(w.temp,u),   u:CV.tempU(u),  p:Math.min(1,(w.temp+10)/60)},
+    {ico:'💧',l:'Humidity',v:w.rh.toFixed(0),       u:'%',          p:w.rh/100, inv:true},
+    {ico:'💨',l:'Wind',    v:CV.wind(w.wind,u),    u:CV.windU(u),  p:Math.min(1,w.wind/80)},
+    {ico:'🌫️',l:'VPD',     v:CV.vpd(w.vpd,u),     u:CV.vpdU(u),   p:Math.min(1,w.vpd/5)},
+    {ico:'🌧️',l:'Rain 7d', v:CV.prec(w.precip7,u),u:CV.precU(u),  p:Math.min(1,w.precip7/30), inv:true},
+    {ico:'🌱',l:'Soil',    v:(w.soil*100).toFixed(0),u:'%',         p:Math.min(1,w.soil/0.5), inv:true},
   ];
-  document.getElementById('wgrid').innerHTML=cards.map(c=>{
-    const col=c.d?dc(c.p):sc(c.p);
-    return`<div class="wcard">
-      <div class="wl">${c.l}</div>
-      <div class="wv" style="color:${col}">${c.v}<span class="wu"> ${c.u}</span></div>
-      <div class="wbar"><div class="wbf" style="width:${c.p*100}%;background:${col}"></div></div>
+  document.getElementById('cgrid').innerHTML=cards.map(c=>{
+    const col=dc(c.p,c.inv||false);
+    return`<div class="ccard">
+      <div class="cc-ico">${c.ico}</div>
+      <div class="cc-l">${c.l}</div>
+      <div class="cc-v" style="color:${col}">${c.v}<span class="cc-u"> ${c.u}</span></div>
+      <div class="ccbar"><div class="ccbf" style="width:${c.p*100}%;background:${col}"></div></div>
     </div>`;
   }).join('');
 }
 
 function renderAttr(features){
   const attr=NN.explain(features);
+  // Always 100% bar total — most important feature gets full bar
   document.getElementById('attr').innerHTML=attr.map((a,i)=>{
-    const h=Math.round(120-a.pct*1.2);
-    const col=`hsl(${h},80%,55%)`;
+    const hue=Math.round(a.dir==='up'?Math.max(0,120-a.pct*1.2):140);
+    const col=a.dir==='up'?`hsl(${hue},90%,55%)`:'#22C55E';
+    const dirArrow=a.dir==='up'?'↑':'↓';
+    const dirColor=a.dir==='up'?'#F97316':'#22C55E';
     return`<div class="arow" style="animation-delay:${i*.06}s">
-      <div class="an">${a.name}</div>
+      <div class="an">${a.icon} ${a.name}</div>
       <div class="abw"><div class="abf" style="width:${a.pct}%;background:${col}"></div></div>
-      <div class="apct">${a.pct}%</div>
+      <div class="aval" style="color:${dirColor}">${dirArrow} ${a.pct}%</div>
     </div>`;
   }).join('');
 }
@@ -768,60 +852,72 @@ function renderAttr(features){
 function renderForecast(forecast){
   if(!forecast.length)return;
   const svgEl=document.getElementById('fcsv');
-  const W=svgEl.clientWidth||328,H=88;
-  const pad={t:14,r:6,b:20,l:8};
+  const W=svgEl.clientWidth||348,H=100;
+  const pad={t:16,r:8,b:22,l:8};
   const svg=d3.select('#fcsv').attr('viewBox',`0 0 ${W} ${H}`);
   svg.selectAll('*').remove();
+
   const x=d3.scaleLinear().domain([0,forecast.length-1]).range([pad.l,W-pad.r]);
   const y=d3.scaleLinear().domain([0,1]).range([H-pad.b,pad.t]);
   const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const today=new Date();
-  [.25,.5,.75].forEach(v=>{
-    svg.append('line').attr('x1',pad.l).attr('x2',W-pad.r)
-      .attr('y1',y(v)).attr('y2',y(v))
-      .attr('stroke','rgba(255,255,255,.04)').attr('stroke-width',1);
+
+  // Background bands
+  [[0,.2,'rgba(34,197,94,.04)'],[.2,.4,'rgba(245,158,11,.04)'],
+   [.4,.6,'rgba(249,115,22,.05)'],[.6,.8,'rgba(239,68,68,.06)'],[.8,1,'rgba(153,27,27,.07)']
+  ].forEach(([lo,hi,col])=>{
+    svg.append('rect').attr('x',pad.l).attr('y',y(hi))
+      .attr('width',W-pad.l-pad.r).attr('height',y(lo)-y(hi))
+      .attr('fill',col);
   });
+
   forecast.forEach((d,i)=>{
     const dt=new Date(today);dt.setDate(dt.getDate()+i+1);
     svg.append('text').attr('x',x(i)).attr('y',H-2).attr('text-anchor','middle')
-      .attr('fill','#4A3A2A').attr('font-size','8').attr('font-family','JetBrains Mono,monospace')
+      .attr('fill','#344050').attr('font-size','8').attr('font-family','JetBrains Mono,monospace')
       .text(days[dt.getDay()]);
   });
+
   const defs=svg.append('defs');
   const g=defs.append('linearGradient').attr('id','fcg').attr('gradientUnits','userSpaceOnUse')
     .attr('x1',0).attr('x2',0).attr('y1',y(1)).attr('y2',y(0));
-  g.append('stop').attr('offset','0%').attr('stop-color','#FF5A1F').attr('stop-opacity',.5);
+  g.append('stop').attr('offset','0%').attr('stop-color','#FF5A1F').attr('stop-opacity',.55);
   g.append('stop').attr('offset','100%').attr('stop-color','#FF5A1F').attr('stop-opacity',.03);
+
   const area=d3.area().x((_,i)=>x(i)).y0(H-pad.b).y1(d=>y(d.risk)).curve(d3.curveCatmullRom.alpha(.5));
   const line=d3.line().x((_,i)=>x(i)).y(d=>y(d.risk)).curve(d3.curveCatmullRom.alpha(.5));
+
   svg.append('path').datum(forecast).attr('d',area).attr('fill','url(#fcg)');
-  svg.append('path').datum(forecast).attr('d',line).attr('fill','none').attr('stroke','#FF5A1F').attr('stroke-width',1.8);
+  svg.append('path').datum(forecast).attr('d',line)
+    .attr('fill','none').attr('stroke','#FF5A1F').attr('stroke-width',2);
+
   forecast.forEach((d,i)=>{
-    const rl=rlevel(d.risk);
-    svg.append('circle').attr('cx',x(i)).attr('cy',y(d.risk)).attr('r',4.5)
-      .attr('fill',rl.col).attr('style',`filter:drop-shadow(0 0 4px ${rl.glow})`);
-    svg.append('text').attr('x',x(i)).attr('y',y(d.risk)-8).attr('text-anchor','middle')
-      .attr('fill',rl.col).attr('font-size','8').attr('font-family','JetBrains Mono,monospace')
-      .attr('opacity',.8).text(Math.round(d.risk*100)+'%');
+    const lv=rl(d.risk);
+    svg.append('circle').attr('cx',x(i)).attr('cy',y(d.risk)).attr('r',5)
+      .attr('fill',lv.c).attr('style',`filter:drop-shadow(0 0 4px ${lv.g})`);
+    svg.append('text').attr('x',x(i)).attr('y',y(d.risk)-9)
+      .attr('text-anchor','middle').attr('fill',lv.c)
+      .attr('font-size','8').attr('font-family','JetBrains Mono,monospace')
+      .text(Math.round(d.risk*100)+'%');
   });
 }
 
 function renderAQI(aq){
-  const wrap=document.getElementById('aqiwrap');
   document.getElementById('saqi').textContent=aq?.aqi?Math.round(aq.aqi):'—';
+  const wrap=document.getElementById('aqiwrap');
   if(!aq?.aqi){wrap.innerHTML='<div class="smsg">AQI unavailable for this region</div>';return;}
   const aqi=Math.round(aq.aqi);
-  const[lbl,desc,col]=
-    aqi<=50 ?['Good',         'Air quality is satisfactory.',            '#16A34A']:
-    aqi<=100?['Moderate',     'Acceptable; sensitive groups take care.',  '#D97706']:
-    aqi<=150?['Unhealthy (S)','Sensitive groups may feel effects.',       '#EA580C']:
-    aqi<=200?['Unhealthy',    'Everyone may feel health effects.',        '#DC2626']:
-    aqi<=300?['Very Unhealthy','Health alert — avoid outdoors.',         '#7F1D1D']:
-             ['Hazardous',    'Emergency condition — smoke event.',       '#450A0A'];
+  const[lbl,desc,col,emoji]=
+    aqi<=50 ?['Good',          'Air quality is satisfactory. Safe for all.',   '#22C55E','😊']:
+    aqi<=100?['Moderate',      'Acceptable. Sensitive people reduce exposure.','#F59E0B','😐']:
+    aqi<=150?['Unhealthy (S)', 'Sensitive groups may feel effects.',            '#F97316','😷']:
+    aqi<=200?['Unhealthy',     'Everyone may experience health effects.',       '#EF4444','🤧']:
+    aqi<=300?['Very Unhealthy','Health alert. Avoid all outdoor activity.',     '#991B1B','⚠️']:
+             ['Hazardous',     'Emergency conditions. Smoke event active.',     '#450A0A','🆘'];
   wrap.innerHTML=`<div class="aqirow">
-    <div class="aqinum" style="color:${col};text-shadow:0 0 16px ${col}66">${aqi}</div>
+    <div class="aqinum" style="color:${col};text-shadow:0 0 20px ${col}60">${aqi}</div>
     <div class="aqir">
-      <div class="aqil" style="color:${col}">${lbl}</div>
+      <div class="aqil" style="color:${col}">${emoji} ${lbl}</div>
       <div class="aqibar"><div class="aqibf" style="width:${Math.min(100,aqi/5)}%;background:${col}"></div></div>
       <div class="aqid">${desc}</div>
       ${aq.pm25!==null?`<div class="aqipm">PM₂.₅: ${aq.pm25?.toFixed(1)} μg/m³</div>`:''}
@@ -830,29 +926,29 @@ function renderAQI(aq){
 }
 
 function renderFires(fires,lat,lon){
-  document.getElementById('sfires').textContent=fires.length;
+  document.getElementById('sfires').textContent=fires.length||'0';
   const wrap=document.getElementById('flist');
-  if(!fires.length){wrap.innerHTML='<div class="nof">No active fires detected in region</div>';return;}
+  if(!fires.length){wrap.innerHTML='<div class="nof">✅ No active fires detected in region</div>';return;}
   const sorted=fires.map(f=>({...f,dist:Math.sqrt((f.lat-lat)**2+(f.lon-lon)**2)*111}))
     .sort((a,b)=>a.dist-b.dist).slice(0,8);
   wrap.innerHTML=sorted.map(f=>`<div class="fitem">
-    <div class="fpulse"></div>
+    <div class="fdot"></div>
     <div class="finfo">
-      <div class="ftit">${f.title}</div>
-      <div class="fmet">${f.dist<500?f.dist.toFixed(0)+' km away · ':''}${f.date}</div>
+      <div class="ft">${f.title}</div>
+      <div class="fm">${f.dist<500?`📍 ${f.dist.toFixed(0)} km away · `:''}${f.date}</div>
     </div>
   </div>`).join('');
 }
 
 function renderAlerts(alerts){
-  document.getElementById('salerts').textContent=alerts.length;
+  document.getElementById('salerts').textContent=alerts.length||'0';
   if(alerts.length){
     document.getElementById('abn').textContent=alerts.length+' zone'+(alerts.length>1?'s':'');
     document.getElementById('alertbar').style.display='flex';
   }
 }
 
-// ── Panel / Search / Alerts ────────────────────────
+// ── Panel / search ────────────────────────────
 let panelOpen=false;
 function togglePanel(){
   panelOpen=!panelOpen;
@@ -874,10 +970,9 @@ sel.addEventListener('input',()=>{
     sres.style.display='block';
     sres.querySelectorAll('.sri').forEach(el=>{
       el.onclick=()=>{
-        const lat=+el.dataset.lat,lon=+el.dataset.lon;
         document.getElementById('locname').textContent=el.dataset.name;
         sel.value='';sres.style.display='none';
-        update(lat,lon);
+        update(+el.dataset.lat,+el.dataset.lon);
       };
     });
   },380);
@@ -885,7 +980,7 @@ sel.addEventListener('input',()=>{
 document.addEventListener('click',e=>{if(!e.target.closest('.swrap'))sres.style.display='none';});
 document.getElementById('abx').onclick=()=>{document.getElementById('alertbar').style.display='none';};
 
-// ── Embers ─────────────────────────────────────────
+// ── Embers ────────────────────────────────────
 (function(){
   const c=document.getElementById('embers'),ctx=c.getContext('2d');
   let W,H,ps=[];
@@ -893,37 +988,37 @@ document.getElementById('abx').onclick=()=>{document.getElementById('alertbar').
   rz();addEventListener('resize',rz);
   function E(){this.reset()}
   E.prototype.reset=function(){
-    this.x=Math.random()*W;this.y=H+Math.random()*70;
-    this.vx=(Math.random()-.5)*.8;this.vy=-(Math.random()*1.2+.3);
+    this.x=Math.random()*W;this.y=H+Math.random()*60;
+    this.vx=(Math.random()-.5)*.7;this.vy=-(Math.random()*1.1+.3);
     this.life=1;this.decay=Math.random()*.004+.002;
-    this.r=Math.random()*2.2+.4;
-    this.col=`hsl(${Math.random()*28+6},100%,${44+Math.random()*34}%)`;
+    this.r=Math.random()*2+.4;
+    this.col=`hsl(${Math.random()*25+6},100%,${46+Math.random()*30}%)`;
   };
   E.prototype.tick=function(){
-    this.x+=this.vx+Math.sin(Date.now()*.0009+this.x*.02)*.3;
+    this.x+=this.vx+Math.sin(Date.now()*.0009+this.x*.02)*.28;
     this.y+=this.vy;this.life-=this.decay;
-    if(this.life<=0||this.y<-12)this.reset();
+    if(this.life<=0||this.y<-10)this.reset();
   };
   E.prototype.draw=function(){
-    ctx.save();ctx.globalAlpha=this.life*.5;
+    ctx.save();ctx.globalAlpha=this.life*.45;
     ctx.fillStyle=this.col;ctx.shadowColor=this.col;ctx.shadowBlur=this.r*4;
     ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();ctx.restore();
   };
-  for(let i=0;i<75;i++){const e=new E();e.y=Math.random()*H;ps.push(e);}
+  for(let i=0;i<70;i++){const e=new E();e.y=Math.random()*H;ps.push(e);}
   (function loop(){ctx.clearRect(0,0,W,H);ps.forEach(p=>{p.tick();p.draw()});requestAnimationFrame(loop)})();
 })();
 
-// ── Loader msgs ────────────────────────────────────
-const MSGS=['Detecting your location…','Fetching live weather…',
-  'Querying NASA EONET for fires…','Running neural network…',
-  'Building risk heatmap…','Loading NOAA alerts…'];
+// ── Loader ────────────────────────────────────
+const MSGS=['Detecting your location…','Connecting to Open-Meteo…',
+  'Querying NASA EONET for fires…','Running neural network inference…',
+  'Computing risk heatmap…','Loading NOAA fire alerts…'];
 let mi=0;
 const lsEl=document.getElementById('lmsg');
-const ltick=setInterval(()=>{if(mi<MSGS.length)lsEl.textContent=MSGS[mi++];},500);
+const ltick=setInterval(()=>{if(mi<MSGS.length)lsEl.textContent=MSGS[mi++];},520);
 
-// ── Main update ────────────────────────────────────
+// ── Main update ───────────────────────────────
 async function update(lat,lon){
-  if(UMARKER)UMARKER.setLatLng([lat,lon]);
+  if(UMARK)UMARK.setLatLng([lat,lon]);
   if(MAP)MAP.setView([lat,lon],7,{animate:true});
 
   const[wr,fr,ar,aqr]=await Promise.allSettled([
@@ -937,11 +1032,11 @@ async function update(lat,lon){
 
   if(!w){console.warn('Weather fetch failed');return;}
 
-  const features=mkFeatures(w);
+  const features=mkF(w);
   const{risk}=NN.fwd(features);
 
-  drawGauge(risk);
-  renderWeather(w);
+  updateRisk(risk);
+  renderConditions(w);
   renderAttr(features);
   renderForecast(w.forecast||[]);
   renderAQI(aq);
@@ -951,15 +1046,15 @@ async function update(lat,lon){
   addAlerts(alerts);
 
   document.getElementById('phu').textContent=
-    new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
-  // Grid heatmap — 25 async calls, runs in background
+  // Dense 7×7 grid heatmap in background
   buildGrid(lat,lon).then(grid=>renderHeatmap(grid));
 }
 
-// ── Boot ───────────────────────────────────────────
+// ── Boot ──────────────────────────────────────
 async function boot(){
-  let lat=34.05,lon=-118.24; // Default: Los Angeles (better for demo)
+  let lat=34.05,lon=-118.24;
   try{
     const pos=await new Promise((res,rej)=>
       navigator.geolocation.getCurrentPosition(res,rej,{timeout:6000}));
@@ -972,13 +1067,12 @@ async function boot(){
   initMap(lat,lon);
 
   clearInterval(ltick);lsEl.textContent='Ready ✓';
-  await new Promise(r=>setTimeout(r,400));
+  await new Promise(r=>setTimeout(r,450));
   document.getElementById('loader').classList.add('out');
 
   if(window.innerWidth>900){
-    setTimeout(()=>{panelOpen=true;document.body.classList.add('open');},900);
+    setTimeout(()=>{panelOpen=true;document.body.classList.add('open');},1000);
   }
-
   await update(lat,lon);
 }
 
